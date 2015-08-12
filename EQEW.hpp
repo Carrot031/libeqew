@@ -1,5 +1,6 @@
 #include <Poco/Poco.h>
 #include <string>
+#include <map>
 class EQEW
 {
 
@@ -26,4 +27,5 @@ class EQEW
 	void setAccessTokenSecret(const std::string value);
 
 	void obtainAccessTokenAndSecret();
+	//static std::map<std::string,std::string> parseQueryString(const std::string& query);
 };
