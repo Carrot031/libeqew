@@ -58,7 +58,7 @@ void EQEW::setAccessTokenSecret(const string value)
 	accessTokenSecret = value;
 }
 
-void EQEW::obtainAccessTokenAndSecret()
+string EQEW::beginObtainingAccessTokenAndSecret()
 {
 	OAuth10Credentials oc(getConsumerKey(),getConsumerSecret());
 	oc.setCallback("oob");
@@ -68,32 +68,98 @@ void EQEW::obtainAccessTokenAndSecret()
 	oc.authenticate(req,uri);
 	const Context::Ptr context = new Context(Context::CLIENT_USE, "", "", "", Context::VERIFY_NONE, 9, false, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
 	HTTPSClientSession cs(TWITTERAPI_HOST,TWITTERAPI_PORT,context);
-	cout<<"sssss"<<endl;
+	//cout<<"sssss"<<endl;
 	cs.sendRequest(req);
 	HTTPResponse resp;
 	istream& rbody = cs.receiveResponse(resp);
-	//cout<<cs.receiveResponse(resp);
-//	cout<<resp.read()<<endl;
-	resp.write(cout);
+	//resp.write(cout);
 
 	char* rbodybuf = new char[8192];
 	rbody.read(rbodybuf,8091);
 	cout<<rbodybuf<<endl;
-}
 
-/*std::map<std::string, std::string> EQEW::parseQueryString(const std::string& query)
-{
-	std::map<std::string, std::string> data;
-	std::regex pattern("([\\w+%]+)=([^&]*)");
-	auto words_begin = std::sregex_iterator(query.begin(), query.end(), pattern);
-	auto words_end = std::sregex_iterator();
-
-	for (std::sregex_iterator i = words_begin; i != words_end; i++)
+	map<string,string> q = parseQueryString(rbodybuf);
+	for(auto unit:q)
 	{
-		std::string key = (*i)[1].str();
-		std::string value = (*i)[2].str();
-		data[key] = value;
+		cout<<unit.first<<endl;
 	}
 
+	delete[] rbodybuf;
+
+	string request_token = q["oauth_token"];
+	string request_token_secret = q["oauth_token_secret"];
+
+	cout<<"request_token:"+request_token<<endl;
+
+	requestToken = request_token;
+	requestTokenSecret = request_token_secret;
+	return "https://api.twitter.com/oauth/authorize?oauth_token="+request_token;
+}
+
+void EQEW::completeObtainingAccessTokenAndSecret(const string& pin)
+{
+	OAuth10Credentials oc(getConsumerKey(),getConsumerSecret());
+	oc.setToken(requestToken);
+	oc.setTokenSecret(requestTokenSecret);
+	oc.setCallback("oob");
+	oc.setRealm("oauth_verifier="+pin);
+	HTTPRequest req(Poco::Net::HTTPRequest::HTTP_POST,"/oauth/access_token?oauth_verifier="+pin);
+	req.setContentType("application/x-www-form-urlencoded");
+	Poco::URI uri("https://api.twitter.com/oauth/access_token?oauth_verifier="+pin);
+	oc.authenticate(req,uri);
+	const Context::Ptr context = new Context(Context::CLIENT_USE,"","","",Context::VERIFY_NONE,9,false,"ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+	HTTPSClientSession cs(TWITTERAPI_HOST,TWITTERAPI_PORT,context);
+	HTTPResponse resp;
+
+	req.set("oauth_verifier",pin);
+	req.setContentLength(0);
+
+	ostream& outstream = cs.sendRequest(req);
+	outstream << "\noauth_verifier="<<pin <<flush;
+	istream& rbody = cs.receiveResponse(resp);
+	
+	char* rbodybuf = new char[8192];
+	rbody.read(rbodybuf,8091);
+	cout<<rbodybuf<<endl;
+
+	delete[] rbodybuf;
+
+	map<string,string> data = parseQueryString(rbodybuf);
+	setAccessToken(data["oauth_token"]);
+	setAccessTokenSecret(data["oauth_token_secret"]);
+
+}
+
+std::map<std::string, std::string> EQEW::parseQueryString(const std::string& query)
+{
+	std::map<std::string, std::string> data;
+
+	vector<string> splitted = split(query,'&');
+	string key;
+	string value;
+	vector<string>::iterator it = splitted.begin();
+	for(auto unit:splitted)
+	{
+		vector<string> pair = split(unit,'=');
+		if(pair.size() != 2)
+		{
+			return data;
+		}
+		key = pair[0];
+		value= pair[1];
+		data[key] = value;
+	}
 	return data;
-}*/
+}
+
+vector<string> EQEW::split(const string &s, char delim) {
+	vector<string> elems;
+	stringstream ss(s);
+	string item;
+	while (getline(ss, item, delim)) {
+		if (!item.empty()) {
+			elems.push_back(item);
+		}
+	}
+	return elems;
+}

@@ -1,6 +1,8 @@
 #include <Poco/Poco.h>
 #include <string>
 #include <map>
+#include <vector>
+#include <sstream>
 class EQEW
 {
 
@@ -9,8 +11,14 @@ class EQEW
 	static const Poco::UInt16 TWITTERAPI_PORT;
 	std::string consumerKey;
 	std::string consumerSecret;
+	std::string requestToken;
+	std::string requestTokenSecret;
 	std::string accessToken;
 	std::string accessTokenSecret;
+
+
+	static std::map<std::string,std::string> parseQueryString(const std::string& query);
+	static std::vector<std::string> split(const std::string& s,char delim);
 
 	public:
 
@@ -26,6 +34,6 @@ class EQEW
 	std::string getAccessTokenSecret()const;
 	void setAccessTokenSecret(const std::string value);
 
-	void obtainAccessTokenAndSecret();
-	//static std::map<std::string,std::string> parseQueryString(const std::string& query);
+	std::string beginObtainingAccessTokenAndSecret();
+	void completeObtainingAccessTokenAndSecret(const std::string& pin);
 };
