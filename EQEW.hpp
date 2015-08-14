@@ -16,7 +16,7 @@ class EQEW
 	std::string accessToken;
 	std::string accessTokenSecret;
 
-
+	static size_t curl_writefunction(char* ptr,size_t size, size_t nmemb, void* userdata);
 	static std::map<std::string,std::string> parseQueryString(const std::string& query);
 	static std::vector<std::string> split(const std::string& s,char delim);
 
@@ -36,4 +36,6 @@ class EQEW
 
 	std::string beginObtainingAccessTokenAndSecret();
 	void completeObtainingAccessTokenAndSecret(const std::string& pin);
+	
+	void beginMonitoring();
 };

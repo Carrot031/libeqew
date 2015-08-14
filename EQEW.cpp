@@ -1,16 +1,18 @@
-#pragma once
 #include <iostream>
+#include <sstream>
 #include <regex>
 #include "Poco/Net/OAuth10Credentials.h"
 #include "Poco/Net/HTTPRequest.h"
 #include "Poco/Net/HTTPResponse.h"
 #include "Poco/Net/HTTPSClientSession.h"
+#include "liboauthcpp/liboauthcpp.h"
 #include "EQEW.hpp"
+#include "curl/curl.h"
 
 using namespace std;
 using namespace Poco::Net;
 
-const string EQEW::URI_TWITTERAPI_REQUEST_TOKEN = "/oauth/request_token";
+const string EQEW::URI_TWITTERAPI_REQUEST_TOKEN = "https://api.twitter.com/oauth/request_token";
 const string EQEW::TWITTERAPI_HOST = "api.twitter.com";
 const Poco::UInt16 EQEW::TWITTERAPI_PORT = 443;
 
@@ -58,8 +60,21 @@ void EQEW::setAccessTokenSecret(const string value)
 	accessTokenSecret = value;
 }
 
+size_t EQEW::curl_writefunction(char* ptr, size_t size, size_t nmemb, void* userdata)
+{
+	size_t ret = size * nmemb;
+	string* str = (string*) userdata;
+	for(size_t i=0; i<ret;i++)
+	{
+		*str += *ptr;
+		ptr++;
+	}
+	return ret;
+}
+
 string EQEW::beginObtainingAccessTokenAndSecret()
 {
+/*
 	OAuth10Credentials oc(getConsumerKey(),getConsumerSecret());
 	oc.setCallback("oob");
 	HTTPRequest req(Poco::Net::HTTPRequest::HTTP_POST,"/oauth/request_token");
@@ -94,6 +109,33 @@ string EQEW::beginObtainingAccessTokenAndSecret()
 	requestToken = request_token;
 	requestTokenSecret = request_token_secret;
 	return "https://api.twitter.com/oauth/authorize?oauth_token="+request_token;
+	*/
+
+	OAuth::Consumer consumer(getConsumerKey(),getConsumerSecret());
+	OAuth::Client oauth(&consumer);
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	string oauth_header = oauth.getFormattedHttpHeader(OAuth::Http::Post,URI_TWITTERAPI_REQUEST_TOKEN,"",true);
+
+	CURL* curl = curl_easy_init();
+	struct curl_slist* list = NULL;
+
+	if(!curl)
+	{
+		cout<<"unable to initialize curl."<<endl;
+		return "";
+	}
+	curl_easy_setopt(curl,CURLOPT_URL,"https://api.twitter.com/oauth/request_token");
+	list = curl_slist_append(list,oauth_header.c_str());
+	curl_easy_setopt(curl,CURLOPT_HTTPHEADER,list);
+
+	string downloaded;
+	curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,curl_writefunction);
+	curl_easy_setopt(curl,CURLOPT_WRITEDATA,(void*)&downloaded);
+	curl_easy_perform(curl);
+	curl_slist_free_all(list);
+	cout<<"CURL finished"<<endl;
+	return downloaded;
 }
 
 void EQEW::completeObtainingAccessTokenAndSecret(const string& pin)
@@ -120,13 +162,47 @@ void EQEW::completeObtainingAccessTokenAndSecret(const string& pin)
 	
 	char* rbodybuf = new char[8192];
 	rbody.read(rbodybuf,8091);
-	cout<<rbodybuf<<endl;
+	cout<<"received:"<<rbodybuf<<endl;
 
-	delete[] rbodybuf;
 
 	map<string,string> data = parseQueryString(rbodybuf);
 	setAccessToken(data["oauth_token"]);
 	setAccessTokenSecret(data["oauth_token_secret"]);
+
+	delete[] rbodybuf;
+}
+
+void EQEW::beginMonitoring()
+{
+	OAuth10Credentials oc(getConsumerKey(),getConsumerSecret());
+	cout<<"token:"<<getAccessToken()<<endl;
+	cout<<"tokensecret:"<<getAccessTokenSecret()<<endl;
+	oc.setToken(getAccessToken());
+	oc.setTokenSecret(getAccessTokenSecret());
+	cout<<oc.getTokenSecret()<<endl;
+	HTTPRequest req(Poco::Net::HTTPRequest::HTTP_GET,"/1.1/users/show.json");
+	//req.setVersion("1.1");
+	req.set("User-Agent","libeqew");
+	Poco::URI uri("https://api.twitter.com/1.1/users/show.json?screen_name=pumpkin031");
+	oc.authenticate(req,uri);
+
+	cout<<req.get("Authorization")<<endl;
+	const Context::Ptr context = new Context(Context::CLIENT_USE,"","","",Context::VERIFY_NONE,9,false,"ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+	HTTPSClientSession cs("api.twitter.com",TWITTERAPI_PORT,context);
+	cs.setKeepAlive(true);
+	HTTPResponse resp;
+
+
+	ostream& outstream = cs.sendRequest(req);
+	istream& rbody = cs.receiveResponse(resp);
+
+	cout<<resp.getReason()<<endl;
+
+	char* rbodybuf = new char[8192];
+	rbody.read(rbodybuf,8191);
+	cout<<rbodybuf<<endl;
+	delete[] rbodybuf;
+
 
 }
 
