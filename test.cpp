@@ -8,7 +8,6 @@ int main()
 	string sec = "mqs1xwzNU08gvszwdZ8qPg4DKZOLlIRxNJOU3UnNL3YQmiuxpX";
 	EQEW e(key,sec);
 	cout<<e.beginObtainingAccessTokenAndSecret()<<endl;
-return 0;
 	string pin;
 	cin >> pin;
 	e.completeObtainingAccessTokenAndSecret(pin);

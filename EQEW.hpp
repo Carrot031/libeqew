@@ -7,6 +7,7 @@ class EQEW
 {
 
 	static const std::string URI_TWITTERAPI_REQUEST_TOKEN;
+	static const std::string URI_TWITTERAPI_ACCESS_TOKEN;
 	static const std::string TWITTERAPI_HOST;
 	static const Poco::UInt16 TWITTERAPI_PORT;
 	std::string consumerKey;

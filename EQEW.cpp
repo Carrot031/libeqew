@@ -13,6 +13,7 @@ using namespace std;
 using namespace Poco::Net;
 
 const string EQEW::URI_TWITTERAPI_REQUEST_TOKEN = "https://api.twitter.com/oauth/request_token";
+const string EQEW::URI_TWITTERAPI_ACCESS_TOKEN = "https://api.twitter.com/oauth/access_token";
 const string EQEW::TWITTERAPI_HOST = "api.twitter.com";
 const Poco::UInt16 EQEW::TWITTERAPI_PORT = 443;
 
@@ -116,30 +117,37 @@ string EQEW::beginObtainingAccessTokenAndSecret()
 	curl_global_init(CURL_GLOBAL_ALL);
 
 	string oauth_header = oauth.getFormattedHttpHeader(OAuth::Http::Post,URI_TWITTERAPI_REQUEST_TOKEN,"",true);
-
+	cout<<oauth_header<< endl;
 	CURL* curl = curl_easy_init();
-	struct curl_slist* list = NULL;
+	struct curl_slist* list = nullptr;
 
 	if(!curl)
 	{
 		cout<<"unable to initialize curl."<<endl;
 		return "";
 	}
-	curl_easy_setopt(curl,CURLOPT_URL,"https://api.twitter.com/oauth/request_token");
+	curl_easy_setopt(curl,CURLOPT_URL,URI_TWITTERAPI_REQUEST_TOKEN.c_str());
 	list = curl_slist_append(list,oauth_header.c_str());
 	curl_easy_setopt(curl,CURLOPT_HTTPHEADER,list);
-
 	string downloaded;
 	curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,curl_writefunction);
 	curl_easy_setopt(curl,CURLOPT_WRITEDATA,(void*)&downloaded);
+
+	curl_easy_setopt(curl, CURLOPT_POST, 1L);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0);
 	curl_easy_perform(curl);
 	curl_slist_free_all(list);
-	cout<<"CURL finished"<<endl;
-	return downloaded;
+	curl_global_cleanup();
+	map<string,string> q = parseQueryString(downloaded);
+	requestToken = q["oauth_token"];
+	requestTokenSecret = q["oauth_token_secret"];
+	
+	return "https://api.twitter.com/oauth/authorize?oauth_token="+requestToken;
 }
 
 void EQEW::completeObtainingAccessTokenAndSecret(const string& pin)
 {
+/*
 	OAuth10Credentials oc(getConsumerKey(),getConsumerSecret());
 	oc.setToken(requestToken);
 	oc.setTokenSecret(requestTokenSecret);
@@ -170,6 +178,33 @@ void EQEW::completeObtainingAccessTokenAndSecret(const string& pin)
 	setAccessTokenSecret(data["oauth_token_secret"]);
 
 	delete[] rbodybuf;
+*/
+
+	OAuth::Consumer consumer(getConsumerKey(),getConsumerSecret());
+	OAuth::Token oauth_request_token(requestToken,requestTokenSecret);
+	oauth_request_token.setPin(pin);
+
+	OAuth::Client client(&consumer,&oauth_request_token);
+
+	string oauth_header = client.getFormattedHttpHeader(OAuth::Http::Post,URI_TWITTERAPI_ACCESS_TOKEN,"",true);
+
+	curl_global_init(CURL_GLOBAL_ALL);
+	CURL* curl = curl_easy_init();
+	struct curl_slist* list = nullptr;
+	list = curl_slist_append(list, oauth_header.c_str());
+	curl_easy_setopt(curl,CURLOPT_URL,URI_TWITTERAPI_ACCESS_TOKEN.c_str());
+	curl_easy_setopt(curl,CURLOPT_HTTPHEADER,list);
+	string downloaded;
+	curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,curl_writefunction);
+	curl_easy_setopt(curl,CURLOPT_WRITEDATA,(void*)&downloaded);
+	
+	curl_easy_perform(curl);
+	//cout<<downloaded<<endl;
+	
+	map<string,string> data = parseQueryString(downloaded);
+	setAccessToken(data["oauth_token"]);
+	setAccessTokenSecret(data["oauth_token_secret"]);
+	curl_global_cleanup();
 }
 
 void EQEW::beginMonitoring()

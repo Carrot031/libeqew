@@ -138,6 +138,7 @@ public:
     static Token extract(const std::string& requestTokenResponse);
 
     const std::string& key() const { return mKey; }
+
     const std::string& secret() const { return mSecret; }
 
     const std::string& pin() const { return mPin; }
