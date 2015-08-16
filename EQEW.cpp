@@ -1,19 +1,18 @@
 #include <iostream>
 #include <sstream>
 #include <regex>
-#include "Poco/Net/OAuth10Credentials.h"
-#include "Poco/Net/HTTPRequest.h"
-#include "Poco/Net/HTTPResponse.h"
-#include "Poco/Net/HTTPSClientSession.h"
+#include <thread>
 #include "liboauthcpp/liboauthcpp.h"
 #include "EQEW.hpp"
 #include "curl/curl.h"
 
 using namespace std;
-using namespace Poco::Net;
 
 const string EQEW::URI_TWITTERAPI_REQUEST_TOKEN = "https://api.twitter.com/oauth/request_token";
 const string EQEW::URI_TWITTERAPI_ACCESS_TOKEN = "https://api.twitter.com/oauth/access_token";
+const string EQEW::URI_TWITTERAPI_USERS_SHOW = "https://api.twitter.com/1.1/users/show.json";
+//const string EQEW::URI_TWITTERAPI_USERS_
+const string EQEW::URI_TWITTERUSERSTREAM_USER = "https://userstream.twitter.com/1.1/user.json";
 const string EQEW::TWITTERAPI_HOST = "api.twitter.com";
 const Poco::UInt16 EQEW::TWITTERAPI_PORT = 443;
 
@@ -68,6 +67,7 @@ size_t EQEW::curl_writefunction(char* ptr, size_t size, size_t nmemb, void* user
 	for(size_t i=0; i<ret;i++)
 	{
 		*str += *ptr;
+		cout<<*ptr<<flush;
 		ptr++;
 	}
 	return ret;
@@ -179,7 +179,6 @@ void EQEW::completeObtainingAccessTokenAndSecret(const string& pin)
 
 	delete[] rbodybuf;
 */
-
 	OAuth::Consumer consumer(getConsumerKey(),getConsumerSecret());
 	OAuth::Token oauth_request_token(requestToken,requestTokenSecret);
 	oauth_request_token.setPin(pin);
@@ -207,38 +206,67 @@ void EQEW::completeObtainingAccessTokenAndSecret(const string& pin)
 	curl_global_cleanup();
 }
 
+void EQEW::monitoringWorker()
+{
+	std::this_thread::sleep_for(std::chrono::seconds(1));	
+	
+	OAuth::Consumer consumer(getConsumerKey(),getConsumerSecret());
+	OAuth::Token oauth_access_token(getAccessToken(),getAccessTokenSecret());
+	OAuth::Client client(&consumer,&oauth_access_token);
+
+	string url = URI_TWITTERUSERSTREAM_USER;
+
+	curl_global_init(CURL_GLOBAL_ALL);
+	CURLM* curlm = curl_multi_init();
+	CURL* curl = curl_easy_init();
+	struct curl_slist* list = nullptr;
+	list = curl_slist_append(list,client.getFormattedHttpHeader(OAuth::Http::Get,url.c_str(),"",true).c_str());
+
+	curl_easy_setopt(curl,CURLOPT_URL,url.c_str());
+	curl_easy_setopt(curl,CURLOPT_HTTPHEADER,list);
+	string downloaded;
+	curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,curl_writefunction);
+	curl_easy_setopt(curl,CURLOPT_WRITEDATA,(void*)&downloaded);
+	
+	
+	curl_multi_add_handle(curlm,curl);
+	int handle_count;
+	int numfds;
+	while(1)
+	{
+		if(stopMonitoringFlag)
+		{
+			break;
+		}
+		curl_multi_perform(curlm,&handle_count);
+		if(handle_count==0)
+		{
+			break;
+		}
+		curl_multi_wait(curlm,NULL,0,75,&numfds);
+	}
+
+	curl_global_cleanup();
+}
+
 void EQEW::beginMonitoring()
 {
-	OAuth10Credentials oc(getConsumerKey(),getConsumerSecret());
-	cout<<"token:"<<getAccessToken()<<endl;
-	cout<<"tokensecret:"<<getAccessTokenSecret()<<endl;
-	oc.setToken(getAccessToken());
-	oc.setTokenSecret(getAccessTokenSecret());
-	cout<<oc.getTokenSecret()<<endl;
-	HTTPRequest req(Poco::Net::HTTPRequest::HTTP_GET,"/1.1/users/show.json");
-	//req.setVersion("1.1");
-	req.set("User-Agent","libeqew");
-	Poco::URI uri("https://api.twitter.com/1.1/users/show.json?screen_name=pumpkin031");
-	oc.authenticate(req,uri);
+	if(monitoringThread)
+	{
+		cerr<<"libeqew: beginMonitoring() : Monitoring is already started."<<endl;
+		return;
+	}
+	monitoringThread.reset(new thread(&EQEW::monitoringWorker,this));
+}
 
-	cout<<req.get("Authorization")<<endl;
-	const Context::Ptr context = new Context(Context::CLIENT_USE,"","","",Context::VERIFY_NONE,9,false,"ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
-	HTTPSClientSession cs("api.twitter.com",TWITTERAPI_PORT,context);
-	cs.setKeepAlive(true);
-	HTTPResponse resp;
-
-
-	ostream& outstream = cs.sendRequest(req);
-	istream& rbody = cs.receiveResponse(resp);
-
-	cout<<resp.getReason()<<endl;
-
-	char* rbodybuf = new char[8192];
-	rbody.read(rbodybuf,8191);
-	cout<<rbodybuf<<endl;
-	delete[] rbodybuf;
-
-
+void EQEW::stopMonitoring()
+{
+	if(!monitoringThread)
+	{
+		return;
+	}
+	stopMonitoringFlag = true;
+	monitoringThread->join();
 }
 
 std::map<std::string, std::string> EQEW::parseQueryString(const std::string& query)

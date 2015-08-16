@@ -3,11 +3,15 @@
 #include <map>
 #include <vector>
 #include <sstream>
+#include <thread>
+#include <memory>
 class EQEW
 {
 
 	static const std::string URI_TWITTERAPI_REQUEST_TOKEN;
 	static const std::string URI_TWITTERAPI_ACCESS_TOKEN;
+	static const std::string URI_TWITTERAPI_USERS_SHOW;
+	static const std::string URI_TWITTERUSERSTREAM_USER;
 	static const std::string TWITTERAPI_HOST;
 	static const Poco::UInt16 TWITTERAPI_PORT;
 	std::string consumerKey;
@@ -21,6 +25,9 @@ class EQEW
 	static std::map<std::string,std::string> parseQueryString(const std::string& query);
 	static std::vector<std::string> split(const std::string& s,char delim);
 
+	bool stopMonitoringFlag = false;
+	std::shared_ptr<std::thread> monitoringThread;
+	void monitoringWorker();
 	public:
 
 	EQEW();
@@ -39,4 +46,5 @@ class EQEW
 	void completeObtainingAccessTokenAndSecret(const std::string& pin);
 	
 	void beginMonitoring();
+	void stopMonitoring();
 };
