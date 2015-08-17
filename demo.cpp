@@ -13,8 +13,19 @@ void a(EarthquakeData& eq,void* userdata)
 int main()
 {
 	//Twitter consumer key and consumer secret for your app.
-	string key = "PBQ03l26fX3eAsgmvPdL9KEhS";
-	string sec = "mqs1xwzNU08gvszwdZ8qPg4DKZOLlIRxNJOU3UnNL3YQmiuxpX";
+	string key = "";
+	string sec = "";
+
+	if(key=="")
+	{
+		cout<<"Enter consumer key:"<<flush;
+		cin>>key;
+	}
+	if(sec=="")
+	{
+		cout<<"Enter consumer secret:"<<flush;
+		cin>>sec;
+	}
 
 	EQEW e(key,sec);
 	cout<<e.beginObtainingAccessTokenAndSecret()<<endl; //Show URI to get PIN for access token.
