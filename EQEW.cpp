@@ -256,7 +256,34 @@ namespace libeqew
 					string err;
 					auto json = json11::Json::parse(unit,err);
 					cout<<json["text"].string_value()<<endl;
+
 					EarthquakeData ed;
+
+					auto splitted = split(json["text"].string_value(),',');
+					if(splitted.size()<15)
+					{
+						continue;
+					}
+
+					//Parses string.
+					const auto& isdrill_str = splitted[1];
+					ed.isDrill = isdrill_str == "01";
+					auto timestr = splitted[2];
+					struct tm tm;
+					if(strptime(timestr.c_str(),"%Y/%m/%d %H:%M:%S",&tm)!=nullptr)
+					{
+						ed.announcedTime = mktime(&tm);
+					}
+					ed.id = splitted[5];
+					const auto& otimestr = splitted[6];
+					if(strptime(otimestr.c_str(),"%Y/%m/%d $H:%M:%S",&tm))
+					{
+						ed.occuredTime = mktime(&tm);
+					}
+					ed.nLatitude = splitted[7];
+					ed.eLongitude = splitted[8];
+					ed.epicenterName = splitted[9];
+
 					for(auto fp : onEarthquakeOccuredFp)
 					{
 						fp.first(ed,fp.second);
@@ -296,6 +323,11 @@ namespace libeqew
 	void EQEW::addOnEarthquakeOccured(void (*fp)(EarthquakeData& e,void* u),void* userdata)
 	{
 		onEarthquakeOccuredFp.insert(make_pair(fp,userdata));
+	}
+
+	void EQEW::clearOnEarthquakeOccured()
+	{
+		onEarthquakeOccuredFp.clear();
 	}
 
 	std::map<std::string, std::string> EQEW::parseQueryString(const std::string& query)

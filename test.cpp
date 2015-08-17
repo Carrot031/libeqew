@@ -6,7 +6,7 @@ using namespace std;
 using namespace libeqew;
 void a(EarthquakeData& eq,void* userdata)
 {
-	cout<<*(int*)userdata<<endl;
+	cout<<"地震ID="<<eq.id<<endl;
 }
 int main()
 {

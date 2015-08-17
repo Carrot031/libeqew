@@ -7,8 +7,8 @@ namespace libeqew
 		bool isDrill = false;
 		time_t announcedTime = -1;
 		std::string id;
-		int nLatitude = -361;
-		int eLongitude = -361;
+		double nLatitude = -361;
+		double eLongitude = -361;
 		time_t occuredTime;
 		std::string epicenterName;
 		int depth;
