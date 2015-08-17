@@ -12,7 +12,7 @@ namespace libeqew
 		time_t occuredTime;
 		std::string epicenterName;
 		int depth;
-		int magnitude;
+		double magnitude;
 		bool occuredAtSea = false;
 		bool isEmergency = true;
 	/*

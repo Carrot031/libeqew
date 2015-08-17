@@ -212,7 +212,8 @@ namespace libeqew
 		OAuth::Token oauth_access_token(getAccessToken(),getAccessTokenSecret());
 		OAuth::Client client(&consumer,&oauth_access_token);
 
-		string url = URI_TWITTERSTREAM_FILTER+"?follow=185233523";
+		const string twitter_uid = "214358709";
+		string url = URI_TWITTERSTREAM_FILTER+"?follow="+twitter_uid;
 
 		curl_global_init(CURL_GLOBAL_ALL);
 		CURLM* curlm = curl_multi_init();
@@ -280,10 +281,13 @@ namespace libeqew
 					{
 						ed.occuredTime = mktime(&tm);
 					}
-					ed.nLatitude = splitted[7];
-					ed.eLongitude = splitted[8];
+					ed.nLatitude = stod(splitted[7]);
+					ed.eLongitude = stod(splitted[8]);
 					ed.epicenterName = splitted[9];
-
+					ed.depth = stod(splitted[10]);
+					ed.magnitude = stoi(splitted[11]);
+					ed.occuredAtSea = splitted[13] == "1";
+					ed.isEmergency = splitted[14] == "1";
 					for(auto fp : onEarthquakeOccuredFp)
 					{
 						fp.first(ed,fp.second);

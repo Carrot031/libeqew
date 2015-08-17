@@ -1,27 +1,33 @@
-#include "EQEW.hpp"
+#include "EQEW.hpp" //include header.
 #include <string>
 #include <iostream>
 #include <thread>
 using namespace std;
 using namespace libeqew;
+
+//This function is called when Earthquake occurs.
 void a(EarthquakeData& eq,void* userdata)
 {
-	cout<<"地震ID="<<eq.id<<endl;
+	cout<<"location="<<eq.epicenterName<<endl;
 }
 int main()
 {
+	//Twitter consumer key and consumer secret for your app.
 	string key = "PBQ03l26fX3eAsgmvPdL9KEhS";
 	string sec = "mqs1xwzNU08gvszwdZ8qPg4DKZOLlIRxNJOU3UnNL3YQmiuxpX";
+
 	EQEW e(key,sec);
-	cout<<e.beginObtainingAccessTokenAndSecret()<<endl;
+	cout<<e.beginObtainingAccessTokenAndSecret()<<endl; //Show URI to get PIN for access token.
 	string pin;
 	cin >> pin;
-	e.completeObtainingAccessTokenAndSecret(pin);
-	int t = 72;
-	e.addOnEarthquakeOccured(&a,&t);
+	e.completeObtainingAccessTokenAndSecret(pin); //Get access token.
+	
+	e.addOnEarthquakeOccured(&a,nullptr);
+
+
 	e.beginMonitoring();
-	cout<<"CALLED!!"<<endl;
 	std::this_thread::sleep_for(std::chrono::seconds(60));	// 60sec
+	
 	e.stopMonitoring();
 	return 0;
 }

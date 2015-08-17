@@ -1,2 +1,2 @@
-libeqew: Earthquake Early Warning System.
+#libeqew: Earthquake Early Warning System.
  This library enables you to receive EEW information quite easily.
