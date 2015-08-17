@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-Wall -std=c++11 -g -fPIC -O0
 OUTPUT=libeqew.a
-OBJS=EQEW.o $(addsuffix .o,$(basename $(wildcard liboauthcpp/*.cpp))) $(addsuffix .o,$(basename $(wildcard json11/*.cpp)))
+OBJS=EQEW.o  $(addsuffix .o,$(basename $(wildcard liboauthcpp/*.cpp))) $(addsuffix .o,$(basename $(wildcard json11/*.cpp)))
 #LIBS=liboauthcpp/*.o
 all: $(OUTPUT)
 $(OUTPUT) : $(OBJS) $(LIBS)
