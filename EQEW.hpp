@@ -4,6 +4,9 @@
 #include <vector>
 #include <sstream>
 #include <thread>
+#ifdef __MINGW32__
+#include "mingw.thread.h"
+#endif
 #include <memory>
 #include "EarthquakeData.hpp"
 namespace libeqew
