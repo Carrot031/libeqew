@@ -2,5 +2,5 @@ CC=g++
 CFLAGS=-Wall -std=c++11 -g -fPIC -O0 -m32
 OUTPUT=libeqew.a
 ARCH=x86-linux
-BUILDDIR = build/$(ARCH)-linux
+BUILDDIR = build/$(ARCH)
 include Makefile-Core.mk

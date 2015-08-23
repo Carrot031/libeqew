@@ -1,4 +1,4 @@
-#include <liboauthcpp/liboauthcpp.h>
+#include "liboauthcpp.h"
 #include "HMAC_SHA1.h"
 #include "base64.h"
 #include "urlencode.h"

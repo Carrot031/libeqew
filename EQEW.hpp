@@ -5,9 +5,10 @@
 #include <sstream>
 #include <thread>
 #ifdef __MINGW32__
-#include "mingw.thread.h"
+#include "mingw-std-threads/mingw.thread.h"
 #endif
 #include <memory>
+#include <ctime>
 #include "EarthquakeData.hpp"
 namespace libeqew
 {

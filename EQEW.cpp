@@ -2,6 +2,7 @@
 #include <sstream>
 #include <regex>
 #include <thread>
+#include <cstdlib>
 #include "liboauthcpp/liboauthcpp.h"
 #include "json11/json11.hpp"
 #include "EQEW.hpp"
@@ -270,22 +271,26 @@ namespace libeqew
 					const auto& isdrill_str = splitted[1];
 					ed.isDrill = isdrill_str == "01";
 					auto timestr = splitted[2];
+					#ifndef __MINGW32__
 					struct tm tm;
 					if(strptime(timestr.c_str(),"%Y/%m/%d %H:%M:%S",&tm)!=nullptr)
 					{
 						ed.announcedTime = mktime(&tm);
 					}
+					#endif
 					ed.id = splitted[5];
+					#ifndef __MINGW32__
 					const auto& otimestr = splitted[6];
 					if(strptime(otimestr.c_str(),"%Y/%m/%d $H:%M:%S",&tm))
 					{
 						ed.occuredTime = mktime(&tm);
 					}
-					ed.nLatitude = stod(splitted[7]);
-					ed.eLongitude = stod(splitted[8]);
+					#endif
+					ed.nLatitude = atof(splitted[7].c_str());
+					ed.eLongitude = atof(splitted[8].c_str());
 					ed.epicenterName = splitted[9];
-					ed.depth = stod(splitted[10]);
-					ed.magnitude = stoi(splitted[11]);
+					ed.depth = atof(splitted[10].c_str());
+					ed.magnitude = atoi(splitted[11].c_str());
 					ed.occuredAtSea = splitted[13] == "1";
 					ed.isEmergency = splitted[14] == "1";
 					for(auto fp : onEarthquakeOccuredFp)
